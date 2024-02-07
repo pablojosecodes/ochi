@@ -1,4 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
+
+import { icons } from "src/icons";
+
 
 // Remember to rename these classes and interfaces!
 
@@ -10,23 +13,35 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
+
 export default class ObsidianToMochiPlugin extends Plugin {
 	settings: MyPluginSettings;
+	
+	addIcons() {
+		addIcon(icons.transform.key, icons.transform.svgContent);
+	}
 
+	
+	// Runs whenever the user starts using the plugin in Obsidian 
 	async onload() {
+		console.log("LOADING")
+
+
 		await this.loadSettings();
-		this.addRibbonIcon('dice', 'Greet', () => {
-			new Notice('Hello, world!');
-		});
+		this.addIcons()
 
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
+		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', (evt: MouseEvent) => {
 			new Notice('Hi from Mochi!');
+			let activeFile = this.app.workspace.getActiveFile();
+
+			console.log(typeof(activeFile))
+			console.log(activeFile)
 		});
+
 		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		transformIcon.addClass('my-plugin-ribbon-class');
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -40,6 +55,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
 				new SampleModal(this.app).open();
 			}
 		});
+
+		
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
 			id: 'sample-editor-command',
@@ -82,8 +99,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
+	// Runs when the plugin is disabled
 	onunload() {
 
+		console.log("UNLOADING")
 	}
 
 	async loadSettings() {
