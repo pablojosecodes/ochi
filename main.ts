@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, addIcon } from 'obsidian';
 
 import { icons } from "src/icons";
 
@@ -16,12 +16,80 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 
 export default class ObsidianToMochiPlugin extends Plugin {
 	settings: MyPluginSettings;
-	
+
 	addIcons() {
 		addIcon(icons.transform.key, icons.transform.svgContent);
 	}
 
-	
+
+	async loadFileContent(): Promise<string | null> {
+		let activeFile = this.app.workspace.getActiveFile();
+		if (activeFile) {
+			let fileContent = await this.app.vault.read(activeFile);
+			return fileContent
+		}
+		return null
+	}
+
+
+// 	# Process
+
+// ## **Reading obsidian**
+
+//  `readCards();` 
+//  - Gets the lines using `this.getLines()`;
+//  - Gets lines using `this.app.vault.read(this.activeFile);`
+
+// Full process of reading
+// ```typescript
+// let activeFile = this.app.workspace.getActiveFile();
+// if (activeFile) {
+// 	let fileContent = await this.app.vault.read(activeFile);
+// 	console.log("UPDATED FILE CONTENT")
+// 	// Works correctly
+// 	console.log(fileContent)
+// }
+// ```
+
+// ## Parsing
+
+// Implement some parsing to turn `fileContent` into list of dicts of keys content and term for the two sides of the card (called `cards`)
+
+// # Saving
+// Call function `zipFiles(savePath, cards)` wich saves the cards to `savePath`, which looks something like “/Users/vicky/Prisma.mochi”
+
+
+
+// ## Cards → Mochi Cards
+
+// Turns cards → mochiCardsEdn
+// - e.g. {:decks [{:name "Prisma",:cards ({:name "d",:content "d\n---\nWelcome to my notes on `prisma`.\n"})}], :version 2}
+
+// ## MochiCards→ zippable dict
+
+
+// - MochiCards → Uint8Array via strToU8
+// 	- Is `buffer`
+// - Then can be in a zippable dict called `files`
+// ```typescript
+// const files: AsyncZippable = {
+//   'data.edn': buffer
+// };
+// ```
+
+// # Zip and save resulting resulting file
+// ```typescript
+// await zip(files, async (err, data) => {
+//   if (err) {
+// 	console.log(err);
+// 	throw err;
+//   } else await this.saveFile(savePath, data, successMessage, this.errorMessage);
+// });
+// ```
+
+
+
+
 	// Runs whenever the user starts using the plugin in Obsidian 
 	async onload() {
 		console.log("LOADING")
@@ -32,12 +100,12 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
 
 		// This creates an icon in the left ribbon.
-		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', (evt: MouseEvent) => {
-			new Notice('Hi from Mochi!');
-			let activeFile = this.app.workspace.getActiveFile();
+		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', async (evt: MouseEvent) => {
+			new Notice('Hi from Mochi updated!');
+			const content = await this.loadFileContent()
 
-			console.log(typeof(activeFile))
-			console.log(activeFile)
+
+			console.log(content)
 		});
 
 		// Perform additional things with the ribbon
@@ -56,7 +124,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 			}
 		});
 
-		
+
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
 			id: 'sample-editor-command',
