@@ -42,12 +42,13 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	 * 
 	 * @param evt - The mouse event from the ribbon icon click.
 	 */
-	async handleTransformIconClick(evt: MouseEvent): Promise<void> {
+	async ObsidianMochiPipeline(evt: MouseEvent): Promise<void> {
 		const content = await this.loadFileContent();
 		if (!content) {
 			new Notice("No Content Open");
 			return;
 		}
+		console.log(content)
 
 		const directoryPath = await this.selectDirectory();
 		if (!directoryPath) {
@@ -151,7 +152,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		addIcon(icons.transform.key, icons.transform.svgContent);
 
 		// Create the key binding for card creation
-		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', this.handleTransformIconClick.bind(this));
+		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', this.ObsidianMochiPipeline.bind(this));
 
 		// Perform additional things with the ribbon
 		transformIcon.addClass('my-plugin-ribbon-class');
