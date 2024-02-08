@@ -3,11 +3,8 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { icons } from "src/icons";
 
 
-// Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
-}
+
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
@@ -31,63 +28,18 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		return null
 	}
 
+	async parseCardData(input: string): Promise<string[][]> {
+		// Split the input string by "<!---->" to get individual cards
+		const cards = input.split("<!---->").filter(card => card.trim() !== "");
 
-// 	# Process
-
-// ## **Reading obsidian**
-
-//  `readCards();` 
-//  - Gets the lines using `this.getLines()`;
-//  - Gets lines using `this.app.vault.read(this.activeFile);`
-
-// Full process of reading
-// ```typescript
-// let activeFile = this.app.workspace.getActiveFile();
-// if (activeFile) {
-// 	let fileContent = await this.app.vault.read(activeFile);
-// 	console.log("UPDATED FILE CONTENT")
-// 	// Works correctly
-// 	console.log(fileContent)
-// }
-// ```
-
-// ## Parsing
-
-// Implement some parsing to turn `fileContent` into list of dicts of keys content and term for the two sides of the card (called `cards`)
-
-// # Saving
-// Call function `zipFiles(savePath, cards)` wich saves the cards to `savePath`, which looks something like “/Users/vicky/Prisma.mochi”
-
-
-
-// ## Cards → Mochi Cards
-
-// Turns cards → mochiCardsEdn
-// - e.g. {:decks [{:name "Prisma",:cards ({:name "d",:content "d\n---\nWelcome to my notes on `prisma`.\n"})}], :version 2}
-
-// ## MochiCards→ zippable dict
-
-
-// - MochiCards → Uint8Array via strToU8
-// 	- Is `buffer`
-// - Then can be in a zippable dict called `files`
-// ```typescript
-// const files: AsyncZippable = {
-//   'data.edn': buffer
-// };
-// ```
-
-// # Zip and save resulting resulting file
-// ```typescript
-// await zip(files, async (err, data) => {
-//   if (err) {
-// 	console.log(err);
-// 	throw err;
-//   } else await this.saveFile(savePath, data, successMessage, this.errorMessage);
-// });
-// ```
-
-
+		// Map each card to a tuple of [card face, card back]
+		return cards.map(card => {
+			// Split the card into face and back using "---" or "***"
+			// The regex /---|\*\*\*/ is used to split by either "---" or "***"
+			const [face, back] = card.split(/---|\*\*\*/).map(part => part.trim());
+			return [face, back];
+		});
+	}
 
 
 	// Runs whenever the user starts using the plugin in Obsidian 
@@ -106,6 +58,12 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
 
 			console.log(content)
+			console.log(typeof (content))
+			if (content) {
+				const ans = await this.parseCardData(content)
+				console.log(ans)
+			}
+
 		});
 
 		// Perform additional things with the ribbon
@@ -153,6 +111,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 				}
 			}
 		});
+
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));

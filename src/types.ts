@@ -1,0 +1,3 @@
+interface MyPluginSettings {
+	mySetting: string;
+}
