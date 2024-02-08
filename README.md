@@ -43,6 +43,20 @@ After converting and saving your notes:
 1. Open Mochi and navigate to the import section.
 2. Select the saved `.mochi` file to import your new deck.
 
+## Demonstration
+
+### From Markdown to Mochi
+
+Here's how a typical markdown note is transformed into Mochi cards:
+
+**Original Markdown File:**
+![Original Markdown File](./img/obsidian.png)
+
+**Converted Mochi File:**
+![Converted Mochi File](./img/mochi.png)
+
+
+
 ## Support and Contribution
 
 For support, questions, or contributions, please visit the GitHub repository for this plugin.
