@@ -3,3 +3,5 @@ interface MyPluginSettings {
 }
 
 type CardComponents = string[];
+
+type CardFields = string[];

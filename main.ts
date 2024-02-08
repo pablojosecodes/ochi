@@ -1,13 +1,12 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, addIcon } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
 
 import { icons } from "src/icons";
 import { AsyncZippable, strToU8, zip } from 'fflate';
-
-type CardFields = string[];
-
-const fs = require("fs");
+import { createMochiCards, parseCardData, saveFile } from 'src/parse_utils';
 
 
+const path = require("path");
+const dialog = require("electron").remote.dialog;
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
@@ -17,11 +16,15 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 export default class ObsidianToMochiPlugin extends Plugin {
 	settings: MyPluginSettings;
 
-	addIcons() {
-		addIcon(icons.transform.key, icons.transform.svgContent);
-	}
-
-
+	/**
+	 * Loads the content of the currently active file.
+	 * 
+	 * This function retrieves the active file from the app's workspace.
+	 * If there is an active file, it reads its content and returns it.
+	 * If no file is active, it returns null.
+	 * 
+	 * @returns A Promise that resolves to the content of the active file as a string, or null if no file is active.
+	 */
 	async loadFileContent(): Promise<string | null> {
 		let activeFile = this.app.workspace.getActiveFile();
 		if (activeFile) {
@@ -31,131 +34,68 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		return null
 	}
 
-	async parseCardData(input: string): Promise<string[][]> {
-		// Split the input string by "<!---->" to get individual cards
-		const cards = input.split("<!---->").filter(card => card.trim() !== "");
 
-		// Map each card to an array of its components
-		return cards.map(card => {
-			// Split the card into its components using "---" or "***"
-			// The regex /---|\*\*\*/ is used to split by either "---" or "***"
-			return card.split(/---|\*\*\*/).map(part => part.trim()).filter(part => part !== "");
-		});
+	
 
-	}
+	/**
+	 * Processes the active file content and saves it as a .edn file on transform icon click.
+	 * Displays notices based on the content availability and processing outcome.
+	 * 
+	 * @param evt - The mouse event from the ribbon icon click.
+	 */
+	async handleTransformIconClick(evt: MouseEvent): Promise<void> {
+		const content = await this.loadFileContent();
 
+		const options = {
+            title: "Select a folder",
+            properties: ["openDirectory"],
+            defaultPath: "",
+          };
 
-
-	async createMochiCards(cards: CardFields[]): Promise<string> {
-		let deckName = this.app.workspace.getActiveFile()!.basename
-
-		let mochiCard = "{:decks [{";
-		mochiCard += ":name " + JSON.stringify(deckName) + ",";
-		mochiCard += ":cards (";
-
-		for (let i = 0; i < cards.length; i++) {
-			// Join the fields of each card with the delimiter
-			const cardContent = cards[i].join('\n---\n');
-
-			mochiCard +=
-				"{:content " +
-				JSON.stringify(cardContent) +
-				"}";
-			// Add comma separator between cards, except after the last card
-			if (i < cards.length - 1) {
-				mochiCard += ",";
-			}
-		}
-
-		mochiCard += ")";
-		mochiCard += "}]";
-		mochiCard += ", :version 2}";
-
-		return mochiCard;
-	}
-
-	// async createMochiCards(cards: CardComponents[]): Promise<string> {
-	// 	let deckName = this.app.workspace.getActiveFile()!.basename
-	// 	let mochiCard = "{:decks [{";
-	// 	mochiCard += ":name " + JSON.stringify(deckName) + ",";
-	// 	mochiCard += ":cards (";
-
-	// 	for (let i = 0; i < cards.length; i++) {
-	// 		const cardFace = cards[i][0]; // Assuming first element is the card face
-	// 		const cardBack = cards[i].slice(1).join('\n---\n'); // Join the remaining elements as the card back
-
-	// 		mochiCard +=
-	// 			"{:name " +
-	// 			JSON.stringify(cardFace) +
-	// 			"," +
-	// 			":content " +
-	// 			JSON.stringify(cardFace + "\n---\n" + cardBack) +
-	// 			"}";
-	// 	}
-
-	// 	mochiCard += ")";
-	// 	mochiCard += "}]";
-	// 	mochiCard += ", :version 2}";
-	// 	console.log(mochiCard)
-
-	// 	return mochiCard;
-	// }
-
-	saveFile(
-		path: string,
-		file: Uint8Array,
-		successMessage: string,
-		errorMessage: string
-	) {
-		fs.writeFile(path, file, (error: any) => {
-			if (error) {
-				console.log(error);
-				new Notice(errorMessage);
-				// this.progressModal.close();
-			} else {
-				new Notice(successMessage);
-				// this.progressModal.close();
-			}
-		});
-	}
-
-	// Runs whenever the user starts using the plugin in Obsidian 
-	async onload() {
-		console.log("LOADING")
-
-
-		await this.loadSettings();
-		this.addIcons()
-
-
-		// This creates an icon in the left ribbon.
-		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', async (evt: MouseEvent) => {
-			new Notice('Hi from Mochi updated!');
-			const content = await this.loadFileContent()
-
-			console.log(content)
-			console.log(typeof (content))
+          const directory_path = await dialog.showOpenDialog(null, options);
+		  if (!directory_path.canceled) {
+            let card_path = path.join(
+				directory_path.filePaths[0],
+              `cards.mochi`
+            );
+			console.log(card_path)
 			if (content) {
-				const cards = await this.parseCardData(content)
+				const cards = await parseCardData(content);
 				if (cards) {
-					const mochiCards = await this.createMochiCards(cards)
+					const mochiCards = await createMochiCards(cards);
 					const buffer = strToU8(mochiCards);
-
+	
 					const files: AsyncZippable = {
 						'data.edn': buffer
 					};
-
+	
 					await zip(files, async (err, data) => {
 						if (err) {
 							console.log(err);
 							throw err;
-						} else await this.saveFile('/Users/vicky/test.mochi', data, "GREAT", "Uh Oh");
+						} else await saveFile(card_path, data);
 					});
-
+				} else {
+					new Notice("No Card Content!");
 				}
+			} else {
+				new Notice("No Content Open");
 			}
+		}
+		else{
+			new Notice("Path Canceled!");
+		}
+		
+	}
 
-		});
+
+	async onload() {
+		await this.setupSettings();
+
+		addIcon(icons.transform.key, icons.transform.svgContent);
+
+		// Create the key binding for card creation
+		const transformIcon = this.addRibbonIcon(icons.transform.key, 'Mochi Plugin- Convert!', this.handleTransformIconClick.bind(this));
 
 		// Perform additional things with the ribbon
 		transformIcon.addClass('my-plugin-ribbon-class');
@@ -164,54 +104,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		const statusBarItemEl = this.addStatusBarItem();
 		statusBarItemEl.setText('Status Bar Text');
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-
-
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+		this.addSettingTab(new TheSettingTab(this.app, this));
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
@@ -219,11 +113,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
 	// Runs when the plugin is disabled
 	onunload() {
-
-		console.log("UNLOADING")
+		new Notice("See you later!");
 	}
 
-	async loadSettings() {
+	async setupSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
@@ -232,23 +125,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
+class TheSettingTab extends PluginSettingTab {
 	plugin: ObsidianToMochiPlugin;
 
 	constructor(app: App, plugin: ObsidianToMochiPlugin) {
