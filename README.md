@@ -57,8 +57,9 @@ Here's how a typical markdown note is transformed into Mochi cards:
 
 Original Markdown file [here](./demo/Jokes%20for%20Happy%20Hour.md)
 
-
 ## Support and Contribution
 
-For support, questions, or contributions, please visit the GitHub repository for this plugin.
+Feel free to open issues to discuss bugs or feature requests! Additionally, my email is on my profile.
+
+If you're feeling generous, [buy me a diet coke!](https://www.buymeacoffee.com/pablohansen)
 
