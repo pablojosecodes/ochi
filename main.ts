@@ -133,10 +133,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
 				// Check if the line has content
 				if (line.trim().length > 0) {
 					// If yes, insert a new line after the current line and then the comment
-					editor.replaceRange("\n<!---->\n", { line: cursor.line + 1, ch: 0 });
+					editor.replaceRange("<!---->", { line: cursor.line + 1, ch: 0 });
 				} else {
 					// If the line is empty, insert the comment at the current cursor position
-					editor.replaceRange("<!---->\n", cursor);
+					editor.replaceRange("<!---->", cursor);
 				}
 			}
 		});
