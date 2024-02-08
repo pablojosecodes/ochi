@@ -1,7 +1,7 @@
 {
 	"id": "ochi",
 	"name": "Ochi- Obsidian to Mochi!",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Turn your obsidian notes into Mochi cards.",
 	"author": "Pablo Hansen",
