@@ -116,16 +116,10 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		});
 	}
 
-
-	async onload() {
-		await this.setupSettings();
-
-
-
-
-		/**
-		 * Command to insert delineation for new flashcard at the cursor position in the editor.
-		 */
+	/**
+	 * Command to insert delineation for new flashcard at the cursor position in the editor.
+	 */
+	async newCardCommand() {
 		this.addCommand({
 			id: 'new-card',
 			name: 'New Card',
@@ -150,6 +144,13 @@ export default class ObsidianToMochiPlugin extends Plugin {
 				// editor.replaceRange("<!---->", cursor);
 			}
 		});
+	}
+
+
+	async onload() {
+		await this.setupSettings();
+
+		this.newCardCommand();
 
 		addIcon(icons.transform.key, icons.transform.svgContent);
 
