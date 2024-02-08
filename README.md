@@ -28,11 +28,13 @@ To install the plugin:
 2. **Trigger Conversion:** Click on the Mochi Plugin icon in the left ribbon to start the conversion process.
 3. **Review and Save:** Once the conversion is complete, review the generated `.mochi` file and save it to your desired location.
 
+
+
 ### Note Formatting for Conversion
 
 To ensure your notes are correctly converted:
 
-- Separate cards in your note using `<!---->`.
+- Separate cards in your note using `<!---->`. (automatically insert this using `CDM + '`)
 - Within each card, separate fields (such as front and back of a card) using `---` or `***`.
 - Ensure your notes are free from formatting errors before conversion.
 

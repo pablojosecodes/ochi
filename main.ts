@@ -34,6 +34,8 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	}
 
 
+
+
 	/**
 	 * Processes the active file content and saves it as a .edn file on transform icon click.
 	 * Displays notices based on the content availability and processing outcome.
@@ -46,22 +48,22 @@ export default class ObsidianToMochiPlugin extends Plugin {
 			new Notice("No Content Open");
 			return;
 		}
-	
+
 		const directoryPath = await this.selectDirectory();
 		if (!directoryPath) {
 			new Notice("Path Canceled!");
 			return;
 		}
-	
+
 		const cards = await parseCardData(content);
 		if (!cards) {
 			new Notice("No Card Content!");
 			return;
 		}
-	
+
 		const mochiCards = await createMochiCards(cards);
 		const buffer = strToU8(mochiCards);
-	
+
 		try {
 			await this.saveMochiCards(directoryPath, buffer);
 		} catch (error) {
@@ -83,16 +85,16 @@ export default class ObsidianToMochiPlugin extends Plugin {
 			properties: ["openDirectory"],
 			defaultPath: "",
 		};
-	
+
 		const directoryPath = await dialog.showOpenDialog(null, options);
 		if (directoryPath.canceled) {
 			return null;
 		}
-	
+
 		return path.join(directoryPath.filePaths[0], 'cards.mochi');
 	}
 
-	
+
 	/**
 	 * Saves the provided Mochi card data to the specified directory.
 	 * Throws an error if saving fails.
@@ -105,7 +107,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		const files: AsyncZippable = {
 			'data.edn': buffer
 		};
-	
+
 		await zip(files, async (err, data) => {
 			if (err) {
 				throw err;
@@ -117,6 +119,37 @@ export default class ObsidianToMochiPlugin extends Plugin {
 
 	async onload() {
 		await this.setupSettings();
+
+
+
+
+		/**
+		 * Command to insert delineation for new flashcard at the cursor position in the editor.
+		 */
+		this.addCommand({
+			id: 'new-card',
+			name: 'New Card',
+			hotkeys: [{ modifiers: ["Mod"], key: "\'" }],
+			editorCallback: (editor, view) => {
+				// Get the current cursor position
+				const cursor = editor.getCursor();
+
+				const line = editor.getLine(cursor.line);
+
+				// Check if the line has content
+				if (line.trim().length > 0) {
+					// If yes, insert a new line after the current line and then the comment
+					editor.replaceRange("\n<!---->\n", { line: cursor.line + 1, ch: 0 });
+				} else {
+					// If the line is empty, insert the comment at the current cursor position
+					editor.replaceRange("<!---->\n", cursor);
+				}
+
+
+				// Insert the comment string at the cursor position
+				// editor.replaceRange("<!---->", cursor);
+			}
+		});
 
 		addIcon(icons.transform.key, icons.transform.svgContent);
 
@@ -147,7 +180,7 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	async setupSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
-	
+
 
 	async saveSettings() {
 		await this.saveData(this.settings);
