@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-mochi",
+	"id": "ochi",
 	"name": "Obsidian to Mochi!",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Turn your obsidian notes into Mochi cars.",
+	"description": "Turn your obsidian notes into Mochi cards.",
 	"author": "Pablo Hansen",
 	"authorUrl": "https://pablohansen.com",
 	"fundingUrl": "https://buymeacoffe.com/pablohansen",

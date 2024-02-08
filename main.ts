@@ -4,7 +4,6 @@ import { icons } from "src/icons";
 import { AsyncZippable, strToU8, zip } from 'fflate';
 import { createMochiCards, parseCardData, saveFile } from 'src/parse_utils';
 
-
 const path = require("path");
 const dialog = require("electron").remote.dialog;
 
@@ -12,9 +11,9 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
-
 export default class ObsidianToMochiPlugin extends Plugin {
 	settings: MyPluginSettings;
+
 
 	/**
 	 * Loads the content of the currently active file.
@@ -35,8 +34,6 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	}
 
 
-	
-
 	/**
 	 * Processes the active file content and saves it as a .edn file on transform icon click.
 	 * Displays notices based on the content availability and processing outcome.
@@ -45,47 +42,76 @@ export default class ObsidianToMochiPlugin extends Plugin {
 	 */
 	async handleTransformIconClick(evt: MouseEvent): Promise<void> {
 		const content = await this.loadFileContent();
-
-		const options = {
-            title: "Select a folder",
-            properties: ["openDirectory"],
-            defaultPath: "",
-          };
-
-          const directory_path = await dialog.showOpenDialog(null, options);
-		  if (!directory_path.canceled) {
-            let card_path = path.join(
-				directory_path.filePaths[0],
-              `cards.mochi`
-            );
-			console.log(card_path)
-			if (content) {
-				const cards = await parseCardData(content);
-				if (cards) {
-					const mochiCards = await createMochiCards(cards);
-					const buffer = strToU8(mochiCards);
-	
-					const files: AsyncZippable = {
-						'data.edn': buffer
-					};
-	
-					await zip(files, async (err, data) => {
-						if (err) {
-							console.log(err);
-							throw err;
-						} else await saveFile(card_path, data);
-					});
-				} else {
-					new Notice("No Card Content!");
-				}
-			} else {
-				new Notice("No Content Open");
-			}
+		if (!content) {
+			new Notice("No Content Open");
+			return;
 		}
-		else{
+	
+		const directoryPath = await this.selectDirectory();
+		if (!directoryPath) {
 			new Notice("Path Canceled!");
+			return;
 		}
-		
+	
+		const cards = await parseCardData(content);
+		if (!cards) {
+			new Notice("No Card Content!");
+			return;
+		}
+	
+		const mochiCards = await createMochiCards(cards);
+		const buffer = strToU8(mochiCards);
+	
+		try {
+			await this.saveMochiCards(directoryPath, buffer);
+		} catch (error) {
+			console.error(error);
+			new Notice("Error saving cards");
+		}
+	}
+
+
+	/**
+	 * Prompts the user to select a directory and returns the path to save the Mochi cards.
+	 * Returns null if the selection is canceled.
+	 *
+	 * @returns A Promise resolving to the selected directory path or null if canceled.
+	 */
+	async selectDirectory(): Promise<string | null> {
+		const options = {
+			title: "Select a folder",
+			properties: ["openDirectory"],
+			defaultPath: "",
+		};
+	
+		const directoryPath = await dialog.showOpenDialog(null, options);
+		if (directoryPath.canceled) {
+			return null;
+		}
+	
+		return path.join(directoryPath.filePaths[0], 'cards.mochi');
+	}
+
+	
+	/**
+	 * Saves the provided Mochi card data to the specified directory.
+	 * Throws an error if saving fails.
+	 *
+	 * @param directoryPath - The path to save the Mochi cards.
+	 * @param buffer - The buffer containing the Mochi card data.
+	 */
+
+	async saveMochiCards(directoryPath: string, buffer: Uint8Array): Promise<void> {
+		const files: AsyncZippable = {
+			'data.edn': buffer
+		};
+	
+		await zip(files, async (err, data) => {
+			if (err) {
+				throw err;
+			}
+			await saveFile(directoryPath, data);
+		});
 	}
 
 
@@ -111,14 +137,17 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
+
 	// Runs when the plugin is disabled
 	onunload() {
 		new Notice("See you later!");
 	}
 
+
 	async setupSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
+	
 
 	async saveSettings() {
 		await this.saveData(this.settings);
