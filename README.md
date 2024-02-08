@@ -50,11 +50,12 @@ After converting and saving your notes:
 Here's how a typical markdown note is transformed into Mochi cards:
 
 **Original Markdown File:**
-![Original Markdown File](./img/obsidian.png)
+![Original Markdown File](./demo/obsidian.png)
 
 **Converted Mochi File:**
-![Converted Mochi File](./img/mochi.png)
+![Converted Mochi File](./demo/mochi.png)
 
+Original Markdown file [here](./demo/Jokes%20for%20Happy%20Hour.md)
 
 
 ## Support and Contribution
