@@ -138,10 +138,6 @@ export default class ObsidianToMochiPlugin extends Plugin {
 					// If the line is empty, insert the comment at the current cursor position
 					editor.replaceRange("<!---->\n", cursor);
 				}
-
-
-				// Insert the comment string at the cursor position
-				// editor.replaceRange("<!---->", cursor);
 			}
 		});
 	}
