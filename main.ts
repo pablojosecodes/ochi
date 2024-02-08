@@ -1,8 +1,11 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, addIcon } from 'obsidian';
 
 import { icons } from "src/icons";
+import { AsyncZippable, strToU8, zip } from 'fflate';
 
+type CardFields = string[];
 
+const fs = require("fs");
 
 
 
@@ -32,15 +35,89 @@ export default class ObsidianToMochiPlugin extends Plugin {
 		// Split the input string by "<!---->" to get individual cards
 		const cards = input.split("<!---->").filter(card => card.trim() !== "");
 
-		// Map each card to a tuple of [card face, card back]
+		// Map each card to an array of its components
 		return cards.map(card => {
-			// Split the card into face and back using "---" or "***"
+			// Split the card into its components using "---" or "***"
 			// The regex /---|\*\*\*/ is used to split by either "---" or "***"
-			const [face, back] = card.split(/---|\*\*\*/).map(part => part.trim());
-			return [face, back];
+			return card.split(/---|\*\*\*/).map(part => part.trim()).filter(part => part !== "");
 		});
+
 	}
 
+
+
+	async createMochiCards(cards: CardFields[]): Promise<string> {
+		let deckName = this.app.workspace.getActiveFile()!.basename
+
+		let mochiCard = "{:decks [{";
+		mochiCard += ":name " + JSON.stringify(deckName) + ",";
+		mochiCard += ":cards (";
+
+		for (let i = 0; i < cards.length; i++) {
+			// Join the fields of each card with the delimiter
+			const cardContent = cards[i].join('\n---\n');
+
+			mochiCard +=
+				"{:content " +
+				JSON.stringify(cardContent) +
+				"}";
+			// Add comma separator between cards, except after the last card
+			if (i < cards.length - 1) {
+				mochiCard += ",";
+			}
+		}
+
+		mochiCard += ")";
+		mochiCard += "}]";
+		mochiCard += ", :version 2}";
+
+		return mochiCard;
+	}
+
+	// async createMochiCards(cards: CardComponents[]): Promise<string> {
+	// 	let deckName = this.app.workspace.getActiveFile()!.basename
+	// 	let mochiCard = "{:decks [{";
+	// 	mochiCard += ":name " + JSON.stringify(deckName) + ",";
+	// 	mochiCard += ":cards (";
+
+	// 	for (let i = 0; i < cards.length; i++) {
+	// 		const cardFace = cards[i][0]; // Assuming first element is the card face
+	// 		const cardBack = cards[i].slice(1).join('\n---\n'); // Join the remaining elements as the card back
+
+	// 		mochiCard +=
+	// 			"{:name " +
+	// 			JSON.stringify(cardFace) +
+	// 			"," +
+	// 			":content " +
+	// 			JSON.stringify(cardFace + "\n---\n" + cardBack) +
+	// 			"}";
+	// 	}
+
+	// 	mochiCard += ")";
+	// 	mochiCard += "}]";
+	// 	mochiCard += ", :version 2}";
+	// 	console.log(mochiCard)
+
+	// 	return mochiCard;
+	// }
+
+	saveFile(
+		path: string,
+		file: Uint8Array,
+		successMessage: string,
+		errorMessage: string
+	) {
+		fs.writeFile(path, file, (error: any) => {
+			if (error) {
+				console.log(error);
+				new Notice(errorMessage);
+				// this.progressModal.close();
+			} else {
+				new Notice(successMessage);
+				// this.progressModal.close();
+			}
+		});
+	}
 
 	// Runs whenever the user starts using the plugin in Obsidian 
 	async onload() {
@@ -56,12 +133,26 @@ export default class ObsidianToMochiPlugin extends Plugin {
 			new Notice('Hi from Mochi updated!');
 			const content = await this.loadFileContent()
 
-
 			console.log(content)
 			console.log(typeof (content))
 			if (content) {
-				const ans = await this.parseCardData(content)
-				console.log(ans)
+				const cards = await this.parseCardData(content)
+				if (cards) {
+					const mochiCards = await this.createMochiCards(cards)
+					const buffer = strToU8(mochiCards);
+
+					const files: AsyncZippable = {
+						'data.edn': buffer
+					};
+
+					await zip(files, async (err, data) => {
+						if (err) {
+							console.log(err);
+							throw err;
+						} else await this.saveFile('/Users/vicky/test.mochi', data, "GREAT", "Uh Oh");
+					});
+
+				}
 			}
 
 		});
